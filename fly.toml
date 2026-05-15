@@ -1,4 +1,9 @@
-app = 'ai-agent-terminal'
+# fly.toml app configuration file generated for ai-agent-terminal-sandbox-v2 on 2026-05-15T20:04:35Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'ai-agent-terminal-sandbox-v2'
 primary_region = 'iad'
 
 [build]
@@ -6,14 +11,24 @@ primary_region = 'iad'
 
 [env]
   APP_ENV = 'production'
+  AUTO_INSTALL_TOOLS = 'true'
+  DATABASE_URL = ''
   LOG_LEVEL = 'info'
   MAX_CONCURRENT_SESSIONS = '50'
-  SANDBOX_TIMEOUT = '300'
-  REDIS_URL = ''
-  DATABASE_URL = ''
-  VOLUME_PATH = '/data'
-  AUTO_INSTALL_TOOLS = 'true'
   PERSIST_SESSIONS = 'true'
+  REDIS_URL = ''
+  SANDBOX_TIMEOUT = '300'
+  VOLUME_PATH = '/data'
+
+[processes]
+  app = 'uvicorn app.main:app --host 0.0.0.0 --port 8080 --workers 1'
+  scheduler = 'celery -A app.core.celery_app beat --loglevel=info'
+  worker = 'celery -A app.core.celery_app worker --loglevel=info --concurrency=4'
+
+[[mounts]]
+  source = 'agent_data'
+  destination = '/data'
+  initial_size = '10gb'
 
 [http_service]
   internal_port = 8080
@@ -33,19 +48,7 @@ primary_region = 'iad'
   memory = '4gb'
   cpu_kind = 'performance'
   cpus = 2
-
-# VOLUME MOUNT - Persistent storage for each machine
-# Each machine gets its own volume (1:1 mapping)
-[[mounts]]
-  source = 'agent_data'
-  destination = '/data'
-  initial_size = '10gb'
-
-# Process groups for different machine types
-[processes]
-  app = 'uvicorn app.main:app --host 0.0.0.0 --port 8080 --workers 1'
-  worker = 'celery -A app.core.celery_app worker --loglevel=info --concurrency=4'
-  scheduler = 'celery -A app.core.celery_app beat --loglevel=info'
+  memory_mb = 4096
 
 [[metrics]]
   port = 9091
