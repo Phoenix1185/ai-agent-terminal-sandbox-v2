@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     # Core utilities
     curl wget git build-essential libffi-dev libssl-dev \
     # Text processing
-    jq yq grep sed awk \
+    jq yq grep sed mawk \
     # Archives
     unzip p7zip-full tar gzip bzip2 \
     # Media
