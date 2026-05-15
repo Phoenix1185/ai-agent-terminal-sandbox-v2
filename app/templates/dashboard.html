@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Terminal & Sandbox v2.0</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 20px 40px;
+            border-bottom: 2px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 24px;
+            color: #e94560;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
+        }
+        .status-badge {
+            background: #0f3460;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #00d9ff;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: calc(100vh - 80px);
+        }
+        .sidebar {
+            background: #1a1a2e;
+            padding: 20px;
+            border-right: 1px solid #0f3460;
+        }
+        .nav-item {
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: #0f3460;
+            color: #e94560;
+        }
+        .main-content {
+            padding: 30px;
+            overflow-y: auto;
+        }
+        .panel {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #0f3460;
+        }
+        .panel h2 {
+            color: #e94560;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        .terminal {
+            background: #000;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+        .terminal-output {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #00ff88;
+        }
+        .terminal-input {
+            display: flex;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .terminal-prompt {
+            color: #e94560;
+            margin-right: 8px;
+        }
+        .terminal-input input {
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+        }
+        .btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin: 4px;
+        }
+        .btn:hover {
+            background: #c73e54;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: #0f3460;
+        }
+        .btn-secondary:hover {
+            background: #1a4a7a;
+        }
+        .btn-success {
+            background: #00ff88;
+            color: #000;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+        .metric-card {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+        }
+        .code-editor {
+            background: #000;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 300px;
+            width: 100%;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            resize: vertical;
+        }
+        .api-section {
+            background: #16213e;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .api-method {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        .api-path {
+            color: #e94560;
+        }
+        .install-form {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .install-form input, .install-form select {
+            padding: 10px;
+            background: #16213e;
+            border: 1px solid #0f3460;
+            color: #e0e0e0;
+            border-radius: 6px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .tool-card {
+            background: #16213e;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .tool-name {
+            font-weight: bold;
+            color: #00d9ff;
+        }
+        .tool-manager {
+            font-size: 12px;
+            color: #888;
+        }
+        .volume-info {
+            background: #16213e;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+        .volume-bar {
+            width: 100%;
+            height: 20px;
+            background: #0f3460;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .volume-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00d9ff);
+            transition: width 0.3s;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 AI Agent Terminal & Sandbox v2.0</h1>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            <span id="region">Loading...</span>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="nav-item active" onclick="showPanel('dashboard')">
+                <span>📊</span> Dashboard
+            </div>
+            <div class="nav-item" onclick="showPanel('terminal')">
+                <span>💻</span> Terminal
+            </div>
+            <div class="nav-item" onclick="showPanel('browser')">
+                <span>🌐</span> Browser
+            </div>
+            <div class="nav-item" onclick="showPanel('sandbox')">
+                <span>🏖️</span> Code Sandbox
+            </div>
+            <div class="nav-item" onclick="showPanel('files')">
+                <span>📁</span> File Manager
+            </div>
+            <div class="nav-item" onclick="showPanel('installer')">
+                <span>📦</span> Tool Installer
+            </div>
+            <div class="nav-item" onclick="showPanel('tools')">
+                <span>🛠️</span> Tool Registry
+            </div>
+            <div class="nav-item" onclick="showPanel('api')">
+                <span>📡</span> API Docs
+            </div>
+        </div>
+        <div class="main-content">
+            <!-- Dashboard Panel -->
+            <div id="dashboard-panel" class="panel">
+                <h2>System Overview</h2>
+                <div class="grid-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="cpu-metric">--</div>
+                        <div class="metric-label">CPU Usage</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="memory-metric">--</div>
+                        <div class="metric-label">Memory Usage</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="disk-metric">--</div>
+                        <div class="metric-label">Disk Usage</div>
+                    </div>
+                </div>
+                <div class="grid-2" style="margin-top: 20px;">
+                    <div class="metric-card">
+                        <div class="metric-value" id="sessions-metric">--</div>
+                        <div class="metric-label">Active Sessions</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="tools-metric">--</div>
+                        <div class="metric-label">Installed Tools</div>
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 24px;">Volume Storage</h2>
+                <div class="volume-info">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Volume Path: <code>/data</code></span>
+                        <span id="volume-status">Checking...</span>
+                    </div>
+                    <div class="volume-bar">
+                        <div class="volume-fill" id="volume-fill" style="width: 0%"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #888;">
+                        <span id="volume-used">0 GB used</span>
+                        <span id="volume-total">0 GB total</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Panel -->
+            <div id="terminal-panel" class="panel hidden">
+                <h2>Terminal</h2>
+                <div class="terminal" id="terminal-output">
+                    <div class="terminal-output">AI Agent Terminal v2.0
+Persistent sessions enabled.
+Type commands below...</div>
+                </div>
+                <div class="terminal-input">
+                    <span class="terminal-prompt">$</span>
+                    <input type="text" id="terminal-cmd" placeholder="Enter command..." onkeypress="handleTerminalInput(event)">
+                </div>
+                <div style="margin-top: 12px;">
+                    <button class="btn" onclick="connectTerminal()">Connect</button>
+                    <button class="btn btn-secondary" onclick="clearTerminal()">Clear</button>
+                    <button class="btn btn-success" onclick="installFromTerminal()">📦 Install Tool</button>
+                </div>
+            </div>
+
+            <!-- Browser Panel -->
+            <div id="browser-panel" class="panel hidden">
+                <h2>Browser Automation</h2>
+                <div style="margin-bottom: 16px;">
+                    <input type="text" id="browser-url" placeholder="Enter URL..." style="width: 60%; padding: 10px; background: #16213e; border: 1px solid #0f3460; color: #e0e0e0; border-radius: 6px;">
+                    <button class="btn" onclick="navigateBrowser()">Navigate</button>
+                    <button class="btn btn-secondary" onclick="takeScreenshot()">Screenshot</button>
+                    <button class="btn btn-secondary" onclick="scrapePage()">Scrape</button>
+                </div>
+                <div id="browser-view" style="background: #000; min-height: 400px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #666;">
+                    Browser view will appear here
+                </div>
+            </div>
+
+            <!-- Sandbox Panel -->
+            <div id="sandbox-panel" class="panel hidden">
+                <h2>Code Sandbox</h2>
+                <div style="margin-bottom: 12px;">
+                    <select id="language-select" style="padding: 8px; background: #16213e; border: 1px solid #0f3460; color: #e0e0e0; border-radius: 6px;">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="bash">Bash</option>
+                        <option value="ruby">Ruby</option>
+                        <option value="go">Go</option>
+                    </select>
+                    <button class="btn" onclick="runCode()">Run Code</button>
+                    <button class="btn btn-secondary" onclick="clearCode()">Clear</button>
+                </div>
+                <textarea class="code-editor" id="code-input" placeholder="# Enter your code here...
+print('Hello, AI Agent!')"></textarea>
+                <div style="margin-top: 12px;">
+                    <h3 style="color: #e94560; font-size: 14px; margin-bottom: 8px;">Output:</h3>
+                    <div class="terminal" id="code-output" style="min-height: 150px;"></div>
+                </div>
+            </div>
+
+            <!-- Files Panel -->
+            <div id="files-panel" class="panel hidden">
+                <h2>File Manager</h2>
+                <div style="margin-bottom: 16px;">
+                    <button class="btn" onclick="listFiles()">Refresh</button>
+                    <button class="btn btn-secondary" onclick="uploadFile()">Upload</button>
+                    <button class="btn btn-secondary" onclick="createFolder()">New Folder</button>
+                    <input type="file" id="file-upload" style="display: none;" onchange="handleFileUpload(event)">
+                </div>
+                <div id="file-list" style="background: #16213e; padding: 16px; border-radius: 8px; min-height: 300px;">
+                    Loading files...
+                </div>
+            </div>
+
+            <!-- Installer Panel -->
+            <div id="installer-panel" class="panel hidden">
+                <h2>📦 Tool Installer</h2>
+                <p style="color: #888; margin-bottom: 16px;">Install any package or tool dynamically. Supports pip, npm, apt, cargo, gem, go, and conda.</p>
+
+                <div class="install-form">
+                    <input type="text" id="install-package" placeholder="Package name (e.g., requests, axios, ffmpeg)">
+                    <select id="install-manager">
+                        <option value="auto">Auto-detect</option>
+                        <option value="pip">pip (Python)</option>
+                        <option value="npm">npm (Node.js)</option>
+                        <option value="apt">apt (System)</option>
+                        <option value="cargo">cargo (Rust)</option>
+                        <option value="gem">gem (Ruby)</option>
+                        <option value="go">go (Go)</option>
+                        <option value="conda">conda</option>
+                    </select>
+                    <input type="text" id="install-version" placeholder="Version (optional)">
+                    <button class="btn" onclick="installPackage()">Install</button>
+                </div>
+
+                <div class="install-form">
+                    <input type="text" id="install-url" placeholder="GitHub URL or direct download URL" style="flex: 3;">
+                    <button class="btn btn-secondary" onclick="installFromUrl()">Install from URL</button>
+                </div>
+
+                <h3 style="color: #e94560; margin-top: 24px; margin-bottom: 12px;">Installed Tools</h3>
+                <div id="installed-tools-list">
+                    <div style="color: #888;">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Tools Panel -->
+            <div id="tools-panel" class="panel hidden">
+                <h2>Tool Registry</h2>
+                <div id="tools-list">
+                    <div class="api-section">
+                        <span class="api-method">BUILTIN</span> <span class="api-path">web_search</span> - Search the web
+                    </div>
+                    <div class="api-section">
+                        <span class="api-method">BUILTIN</span> <span class="api-path">calculator</span> - Evaluate expressions
+                    </div>
+                    <div class="api-section">
+                        <span class="api-method">BUILTIN</span> <span class="api-path">system_info</span> - Get system info
+                    </div>
+                    <div class="api-section">
+                        <span class="api-method">BUILTIN</span> <span class="api-path">git_clone</span> - Clone repositories
+                    </div>
+                    <div class="api-section">
+                        <span class="api-method">BUILTIN</span> <span class="api-path">file_analyzer</span> - Analyze files
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Panel -->
+            <div id="api-panel" class="panel hidden">
+                <h2>API Endpoints</h2>
+                <div class="api-section">
+                    <span class="api-method">GET</span> <span class="api-path">/health</span> - Health check
+                </div>
+                <div class="api-section">
+                    <span class="api-method">GET</span> <span class="api-path">/api/v1/info</span> - System info
+                </div>
+                <div class="api-section">
+                    <span class="api-method">POST</span> <span class="api-path">/api/v1/terminal/execute</span> - Execute command
+                </div>
+                <div class="api-section">
+                    <span class="api-method">POST</span> <span class="api-path">/api/v1/sandbox/execute</span> - Execute code
+                </div>
+                <div class="api-section">
+                    <span class="api-method">POST</span> <span class="api-path">/api/v1/browser/action</span> - Browser action
+                </div>
+                <div class="api-section">
+                    <span class="api-method">GET</span> <span class="api-path">/api/v1/files/list</span> - List files
+                </div>
+                <div class="api-section">
+                    <span class="api-method">POST</span> <span class="api-path">/api/v1/installer/install</span> - Install package
+                </div>
+                <div class="api-section">
+                    <span class="api-method">POST</span> <span class="api-path">/api/v1/installer/install/batch</span> - Batch install
+                </div>
+                <div class="api-section">
+                    <span class="api-method">POST</span> <span class="api-path">/api/v1/installer/from-url</span> - Install from URL
+                </div>
+                <div class="api-section">
+                    <span class="api-method">POST</span> <span class="api-path">/api/v1/tools/execute</span> - Execute tool
+                </div>
+                <div class="api-section">
+                    <span class="api-method">POST</span> <span class="api-path">/api/v1/system/backup</span> - Create backup
+                </div>
+                <div class="api-section">
+                    <span class="api-method">WS</span> <span class="api-path">/ws/terminal</span> - Terminal WebSocket
+                </div>
+                <div class="api-section">
+                    <span class="api-method">WS</span> <span class="api-path">/ws/browser</span> - Browser WebSocket
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const API_KEY = "dev-key-change-in-production";
+        let terminalWs = null;
+        let browserWs = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateMetrics();
+            loadInstalledTools();
+            setInterval(updateMetrics, 5000);
+            setInterval(loadInstalledTools, 30000);
+        });
+
+        function showPanel(panelName) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(panelName + '-panel').classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            event.target.closest('.nav-item').classList.add('active');
+        }
+
+        async function updateMetrics() {
+            try {
+                const res = await fetch('/health');
+                const data = await res.json();
+                document.getElementById('cpu-metric').textContent = data.cpu_percent + '%';
+                document.getElementById('memory-metric').textContent = data.memory_percent + '%';
+                document.getElementById('disk-metric').textContent = data.disk_usage + '%';
+                document.getElementById('sessions-metric').textContent = data.active_sessions;
+                document.getElementById('region').textContent = data.machine_region;
+
+                if (data.volume && data.volume.mounted) {
+                    document.getElementById('volume-status').textContent = '✅ Mounted';
+                    document.getElementById('volume-status').style.color = '#00ff88';
+                    document.getElementById('volume-fill').style.width = data.volume.usage.percent + '%';
+                    document.getElementById('volume-used').textContent = data.volume.usage.used_gb + ' GB used';
+                    document.getElementById('volume-total').textContent = data.volume.usage.total_gb + ' GB total';
+                } else {
+                    document.getElementById('volume-status').textContent = '❌ Not mounted';
+                    document.getElementById('volume-status').style.color = '#ff4444';
+                }
+            } catch (e) {
+                console.error('Failed to fetch metrics:', e);
+            }
+
+            try {
+                const infoRes = await fetch('/api/v1/info', { headers: {'X-API-Key': API_KEY} });
+                const infoData = await infoRes.json();
+                document.getElementById('tools-metric').textContent = infoData.installed_tools || 0;
+            } catch (e) {}
+        }
+
+        function connectTerminal() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            terminalWs = new WebSocket(`${protocol}//${window.location.host}/ws/terminal`);
+            terminalWs.onopen = () => { appendTerminalOutput('Connected to terminal session\n'); };
+            terminalWs.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'output') appendTerminalOutput(data.data);
+                else if (data.type === 'error') appendTerminalOutput('Error: ' + data.data + '\n', 'error');
+                else if (data.type === 'info') appendTerminalOutput('ℹ️ ' + data.data + '\n', 'info');
+            };
+            terminalWs.onclose = () => { appendTerminalOutput('\nDisconnected from terminal\n'); };
+        }
+
+        function handleTerminalInput(event) {
+            if (event.key === 'Enter') {
+                const cmd = document.getElementById('terminal-cmd').value;
+                if (terminalWs && terminalWs.readyState === WebSocket.OPEN) {
+                    terminalWs.send(JSON.stringify({type: 'command', data: cmd}));
+                }
+                appendTerminalOutput('$ ' + cmd + '\n');
+                document.getElementById('terminal-cmd').value = '';
+            }
+        }
+
+        function appendTerminalOutput(text, type = 'normal') {
+            const output = document.getElementById('terminal-output');
+            const div = document.createElement('div');
+            div.className = 'terminal-output';
+            if (type === 'error') div.style.color = '#ff4444';
+            else if (type === 'info') div.style.color = '#00d9ff';
+            else div.style.color = '#00ff88';
+            div.textContent = text;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal-output').innerHTML = '';
+        }
+
+        function installFromTerminal() {
+            const pkg = prompt('Enter package name to install:');
+            if (pkg && terminalWs) {
+                terminalWs.send(JSON.stringify({type: 'install', package: pkg, manager: 'auto'}));
+            }
+        }
+
+        async function navigateBrowser() {
+            const url = document.getElementById('browser-url').value;
+            if (!url) return;
+            try {
+                const res = await fetch('/api/v1/browser/action', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-API-Key': API_KEY},
+                    body: JSON.stringify({action: 'navigate', url: url})
+                });
+                const data = await res.json();
+                document.getElementById('browser-view').innerHTML = `<div style="color: #00ff88;">Navigated to: ${data.url || url}<br>Title: ${data.title || 'N/A'}</div>`;
+            } catch (e) {
+                document.getElementById('browser-view').innerHTML = `<div style="color: #ff4444;">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function takeScreenshot() {
+            try {
+                const res = await fetch('/api/v1/browser/action', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-API-Key': API_KEY},
+                    body: JSON.stringify({action: 'screenshot', full_page: true})
+                });
+                const data = await res.json();
+                if (data.data) {
+                    document.getElementById('browser-view').innerHTML = `<img src="data:image/png;base64,${data.data}" style="max-width: 100%; border-radius: 4px;">`;
+                }
+            } catch (e) {
+                document.getElementById('browser-view').innerHTML = `<div style="color: #ff4444;">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function scrapePage() {
+            const url = document.getElementById('browser-url').value;
+            if (!url) return;
+            try {
+                const res = await fetch('/api/v1/browser/scrape?url=' + encodeURIComponent(url), {
+                    method: 'POST',
+                    headers: {'X-API-Key': API_KEY}
+                });
+                const data = await res.json();
+                document.getElementById('browser-view').innerHTML = `<div style="color: #00ff88; text-align: left; padding: 16px; overflow: auto; max-height: 400px;"><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+            } catch (e) {
+                document.getElementById('browser-view').innerHTML = `<div style="color: #ff4444;">Error: ${e.message}</div>`;
+            }
+        }
+
+        async function runCode() {
+            const code = document.getElementById('code-input').value;
+            const language = document.getElementById('language-select').value;
+            document.getElementById('code-output').innerHTML = '<div style="color: #888;">Running...</div>';
+            try {
+                const res = await fetch('/api/v1/sandbox/execute', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-API-Key': API_KEY},
+                    body: JSON.stringify({code, language, timeout: 30})
+                });
+                const data = await res.json();
+                let output = '';
+                if (data.stdout) output += `<div style="color: #00ff88;">${data.stdout}</div>`;
+                if (data.stderr) output += `<div style="color: #ffaa00;">${data.stderr}</div>`;
+                if (data.returncode !== 0) output += `<div style="color: #ff4444;">Exit code: ${data.returncode}</div>`;
+                document.getElementById('code-output').innerHTML = output || '<div style="color: #888;">No output</div>';
+            } catch (e) {
+                document.getElementById('code-output').innerHTML = `<div style="color: #ff4444;">Error: ${e.message}</div>`;
+            }
+        }
+
+        function clearCode() {
+            document.getElementById('code-input').value = '';
+            document.getElementById('code-output').innerHTML = '';
+        }
+
+        async function listFiles() {
+            try {
+                const res = await fetch('/api/v1/files/list?path=', { headers: {'X-API-Key': API_KEY} });
+                const data = await res.json();
+                let html = '';
+                if (data.items) {
+                    data.items.forEach(item => {
+                        const icon = item.type === 'directory' ? '📁' : '📄';
+                        html += `<div style="padding: 8px; border-bottom: 1px solid #0f3460; cursor: pointer;" onclick="${item.type === 'directory' ? `navigateFolder('${item.name}')` : `viewFile('${item.name}')`}">${icon} ${item.name} <span style="color: #888; float: right;">${item.size ? item.size + ' bytes' : ''}</span></div>`;
+                    });
+                }
+                document.getElementById('file-list').innerHTML = html || '<div style="color: #888;">No files</div>';
+            } catch (e) {
+                document.getElementById('file-list').innerHTML = `<div style="color: #ff4444;">Error: ${e.message}</div>`;
+            }
+        }
+
+        function uploadFile() {
+            document.getElementById('file-upload').click();
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                await fetch('/api/v1/files/upload?path=', {
+                    method: 'POST',
+                    headers: {'X-API-Key': API_KEY},
+                    body: formData
+                });
+                listFiles();
+            } catch (e) {
+                alert('Upload failed: ' + e.message);
+            }
+        }
+
+        function createFolder() {
+            const name = prompt('Enter folder name:');
+            if (name) {
+                fetch('/api/v1/files/mkdir?path=' + encodeURIComponent(name), {
+                    method: 'POST',
+                    headers: {'X-API-Key': API_KEY}
+                }).then(() => listFiles());
+            }
+        }
+
+        async function installPackage() {
+            const pkg = document.getElementById('install-package').value;
+            const manager = document.getElementById('install-manager').value;
+            const version = document.getElementById('install-version').value;
+
+            if (!pkg) return alert('Enter a package name');
+
+            const btn = event.target;
+            btn.textContent = 'Installing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/v1/installer/install', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-API-Key': API_KEY},
+                    body: JSON.stringify({package: pkg, manager, version})
+                });
+                const data = await res.json();
+                alert(data.status === 'installed' || data.status === 'already_installed' 
+                    ? `✅ ${pkg} ${data.status}` 
+                    : `❌ Failed: ${data.stderr || data.message}`);
+                loadInstalledTools();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                btn.textContent = 'Install';
+                btn.disabled = false;
+            }
+        }
+
+        async function installFromUrl() {
+            const url = document.getElementById('install-url').value;
+            if (!url) return alert('Enter a URL');
+
+            try {
+                const res = await fetch('/api/v1/installer/from-url', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-API-Key': API_KEY},
+                    body: JSON.stringify({url})
+                });
+                const data = await res.json();
+                alert(data.status === 'installed' ? `✅ Installed from ${url}` : `❌ Failed: ${data.message}`);
+                loadInstalledTools();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function loadInstalledTools() {
+            try {
+                const res = await fetch('/api/v1/installer/list', { headers: {'X-API-Key': API_KEY} });
+                const data = await res.json();
+
+                let html = '';
+                if (data.installed_tools) {
+                    Object.entries(data.installed_tools).forEach(([name, info]) => {
+                        html += `
+                            <div class="tool-card">
+                                <div>
+                                    <div class="tool-name">${name}</div>
+                                    <div class="tool-manager">${info.manager} • ${info.version || 'latest'}</div>
+                                </div>
+                                <button class="btn btn-secondary" onclick="uninstallTool('${name}')">Uninstall</button>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('installed-tools-list').innerHTML = html || '<div style="color: #888;">No tools installed yet</div>';
+            } catch (e) {
+                document.getElementById('installed-tools-list').innerHTML = '<div style="color: #888;">Failed to load tools</div>';
+            }
+        }
+
+        async function uninstallTool(name) {
+            if (!confirm(`Uninstall ${name}?`)) return;
+            try {
+                await fetch(`/api/v1/installer/uninstall?package=${encodeURIComponent(name)}`, {
+                    method: 'POST',
+                    headers: {'X-API-Key': API_KEY}
+                });
+                loadInstalledTools();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
