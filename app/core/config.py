@@ -77,7 +77,7 @@ class Settings(BaseSettings):
     AUTO_INSTALL_TIMEOUT: int = 300
 
     # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./data/app.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:////data/app.db"
 
     # Redis (optional, for multi-machine coordination)
     REDIS_URL: Optional[str] = None
