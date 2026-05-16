@@ -8,7 +8,7 @@ celery_app = Celery(
     "ai_agent_terminal",
     broker=settings.REDIS_URL or "redis://localhost:6379/0",
     backend=settings.REDIS_URL or "redis://localhost:6379/0",
-    include=["app.core.tasks"]
+    # include=["app.core.tasks"]
 )
 
 celery_app.conf.update(
